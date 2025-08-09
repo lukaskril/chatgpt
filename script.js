@@ -1,4 +1,4 @@
-const API_URL = 'https://d4armory.io/api/events/upcoming/worldboss';
+const API_URL = 'https://d4armory.io/api/events.json';
 
 // Přibližné souřadnice světových bossů v systému lat/lon
 const BOSS_LOCATIONS = {
@@ -15,14 +15,28 @@ let map;
 async function loadBoss() {
   try {
     const res = await fetch(API_URL);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
     const data = await res.json();
 
-    const bossName = data.boss || data.worldBoss;
-    const location = data.territory || data.zone || data.location;
-    const expected = data.expected || data.spawn; // timestamp v ms
+    const worldBoss = Array.isArray(data)
+      ? data.find(ev => ev.e === 'World Boss')
+      : null;
+
+    if (!worldBoss) {
+      document.getElementById('boss').textContent =
+        'Žádný World Boss nebyl nalezen.';
+      return;
+    }
+
+    const bossName = worldBoss.n;
+    const location = worldBoss.t || worldBoss.z;
+    const expected = worldBoss.ts; // timestamp v s
 
     document.getElementById('boss').textContent = `Další boss: ${bossName}`;
-    document.getElementById('location').textContent = `Místo: ${location}`;
+    document.getElementById('location').textContent =
+      location ? `Místo: ${location}` : '';
 
     if (expected) {
       startCountdown(expected);
@@ -35,8 +49,8 @@ async function loadBoss() {
   }
 }
 
-function startCountdown(targetTime) {
-  const target = typeof targetTime === 'number' && targetTime < 1e12 ? targetTime * 1000 : targetTime;
+function startCountdown(targetTimeSec) {
+  const target = targetTimeSec * 1000;
 
   function update() {
     const diff = target - Date.now();
@@ -56,6 +70,7 @@ function startCountdown(targetTime) {
 }
 
 function showOnMap(location) {
+  if (typeof L === 'undefined') return;
   const coords = BOSS_LOCATIONS[location];
   if (!coords) return;
 
