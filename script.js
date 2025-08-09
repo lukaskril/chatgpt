@@ -15,6 +15,9 @@ let map;
 async function loadBoss() {
   try {
     const res = await fetch(API_URL);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
     const data = await res.json();
 
     const worldBoss = Array.isArray(data)
@@ -67,6 +70,7 @@ function startCountdown(targetTimeSec) {
 }
 
 function showOnMap(location) {
+  if (typeof L === 'undefined') return;
   const coords = BOSS_LOCATIONS[location];
   if (!coords) return;
 
